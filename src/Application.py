@@ -4,6 +4,7 @@ from pygame.locals import DOUBLEBUF, OPENGL
 from pygame.time import Clock
 from OpenGL.GL import *
 from OpenGL.GLU import *
+from .Shapes import Shapes
 
 
 class Application():
@@ -21,6 +22,8 @@ class Application():
     done = False
     
     framerate = 60
+    
+    draw_manager = Shapes()
 
     def __init__(self):
         # Init pygame duh!
@@ -57,7 +60,7 @@ class Application():
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glRotate(1, 10, 0, 1)
         glPushMatrix()
-        # TODO: import and execute here cube
+        self.draw_manager.cube()
         glPopMatrix()
 
     def run(self):
