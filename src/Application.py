@@ -1,11 +1,12 @@
 import pygame
+import platform
 
 from pygame.locals import DOUBLEBUF, OPENGL
 from pygame.time import Clock
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from .Shapes import Shapes
-
+from .Utils import drawText
 
 class Application():
     screen_w = 800
@@ -18,11 +19,11 @@ class Application():
 
     screen = None
     clock = None
-    
+
     done = False
-    
+
     framerate = 60
-    
+
     draw_manager = Shapes()
 
     def __init__(self):
@@ -36,11 +37,6 @@ class Application():
         )
 
         self.clock = Clock()
-
-        # Apply Background and drawing color
-        glClearColor(self.bg[0], self.drawing_color[1],
-                     self.bg[2], self.drawing_color[3])
-        glColor(self.drawing_color)
 
         # Camera system
         glMatrixMode(GL_PROJECTION)
@@ -56,6 +52,12 @@ class Application():
         glEnable(GL_DEPTH_TEST)
         glTranslate(0, 0, -2)
 
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+        pygame.display.set_caption(
+            "JAMZ - Monte Carlo Global Illumination - Demo")
+
     def display(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glRotate(1, 10, 0, 1)
@@ -63,17 +65,18 @@ class Application():
         self.draw_manager.cube()
         glPopMatrix()
 
+        drawText((10, 25, 0), f"Debug Info")
+        drawText((10, 10, 0), f"FPS: {self.clock.get_fps():.0f}")        
+
     def run(self):
         while not self.done:
             self.clock.tick(self.framerate) / 1000
-            
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.done = True
 
             self.display()
-            
             pygame.display.flip()
-            pygame.display.set_caption(f"JAMZ - Montecarlo demo - {self.clock.get_fps():.0f} fps")
-            
+        
         pygame.quit()
