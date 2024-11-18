@@ -1,5 +1,5 @@
 import pygame
-import platform
+import numpy
 
 from pygame.locals import DOUBLEBUF, OPENGL
 from pygame.time import Clock
@@ -7,6 +7,8 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from .Shapes import Shapes
 from .Utils import drawText
+from math import cos, sin, radians
+
 
 class Application():
     screen_w = 800
@@ -21,14 +23,26 @@ class Application():
     clock = None
 
     done = False
-
     framerate = 60
-
     draw_manager = Shapes()
+
+    pbo = None
+
+    camera_pos = [0, 0, -5]
+    camera_front = [0, 0, 1]    
+    camera_up = [0, 1, 0]
+    camera_speed = 0.1
+    yaw = 0
+    pitch = 0
+    mouse_sensitivity = 0.2
 
     def __init__(self):
         # Init pygame duh!
         pygame.init()
+        
+        # Pygame config
+        pygame.event.set_grab(True)
+        pygame.mouse.set_visible(False)
 
         # Init all pygame resources
         self.screen = pygame.display.set_mode(
@@ -38,25 +52,37 @@ class Application():
 
         self.clock = Clock()
 
-        # Camera system
+        self.pbo = glGenBuffers(1)
+
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, self.pbo)
+        glBufferData(GL_PIXEL_UNPACK_BUFFER, self.screen_w *
+                     self.screen_h * 3, None, GL_STREAM_DRAW)
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
+
+        # Disable OpenGL Features
+        glDisable(GL_LIGHTING)
+        glDisable(GL_TEXTURE_2D)
+        glDisable(GL_COLOR_MATERIAL)
+
+        # Configure viewport
+        glViewport(0, 0, self.screen_w, self.screen_h)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        # args = fov(y), aspect ratio, zNear, zFar
-        gluPerspective(60, (self.screen_w / self.screen_h), 0.1, 100.0)
-
-        # Model View
+        gluOrtho2D(0, self.screen_w, 0, self.screen_h)
         glMatrixMode(GL_MODELVIEW)
-        glTranslate(0, 0, -5)
         glLoadIdentity()
-        glViewport(0, 0, self.screen.get_width(), self.screen.get_height())
-        glEnable(GL_DEPTH_TEST)
-        glTranslate(0, 0, -2)
 
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
         pygame.display.set_caption(
             "JAMZ - Monte Carlo Global Illumination - Demo")
+
+    def update_camera(self):
+        glLoadIdentity()
+        gluLookAt(self.camera_pos[0], self.camera_pos[1], self.camera_pos[2],
+                  self.camera_front[0], self.camera_front[1], self.camera_front[2],
+                  self.camera_up[0], self.camera_up[1], self.camera_up[2])
 
     def display(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -65,9 +91,22 @@ class Application():
         self.draw_manager.cube()
         glPopMatrix()
 
-        drawText((10, 25, 0), f"Debug Info")
-        drawText((10, 10, 0), f"FPS: {self.clock.get_fps():.0f}")        
+        self.update_camera()
 
+        drawText((10, 50, 0), f"Debug Info")
+        drawText((10, 25, 0), f"Current position: {self.camera_pos}")
+        drawText((10, 10, 0), f"FPS: {self.clock.get_fps():.0f}")
+
+    def handle_mouse_motion(self, event):
+        self.yaw = event.rel[0] * self.mouse_sensitivity
+        self.pitch = event.rel[1] * self.mouse_sensitivity
+        
+        self.pitch = max(-89, min(89, self.pitch))
+
+        self.camera_front[0] = cos(radians(self.yaw)) * cos(radians(self.pitch))
+        self.camera_front[1] = sin(radians(self.pitch))
+        self.camera_front[2] = cos(radians(self.yaw)) * cos(radians(self.pitch))
+        
     def run(self):
         while not self.done:
             self.clock.tick(self.framerate) / 1000
@@ -76,7 +115,35 @@ class Application():
                 if event.type == pygame.QUIT:
                     self.done = True
 
+                if event.type == pygame.MOUSEMOTION:
+                    self.handle_mouse_motion(event)
+
+                keys = pygame.key.get_pressed()
+
+                if keys[pygame.K_w]:
+                    self.camera_pos[0] += self.camera_front[0] * \
+                        self.camera_speed
+                    self.camera_pos[1] += self.camera_front[1] * \
+                        self.camera_speed
+                    self.camera_pos[2] += self.camera_front[2] * \
+                        self.camera_speed
+                if keys[pygame.K_s]:
+                    self.camera_pos[0] -= self.camera_front[0] * \
+                        self.camera_speed
+                    self.camera_pos[1] -= self.camera_front[1] * \
+                        self.camera_speed
+                    self.camera_pos[2] -= self.camera_front[2] * \
+                        self.camera_speed
+                if keys[pygame.K_a]:
+                    right = numpy.cross(self.camera_front, self.camera_up)
+                    self.camera_pos[0] -= right[0] * self.camera_speed
+                    self.camera_pos[2] -= right[2] * self.camera_speed
+                if keys[pygame.K_d]:
+                    right = numpy.cross(self.camera_front, self.camera_up)
+                    self.camera_pos[0] += right[0] * self.camera_speed
+                    self.camera_pos[2] += right[2] * self.camera_speed
+
             self.display()
             pygame.display.flip()
-        
+
         pygame.quit()
