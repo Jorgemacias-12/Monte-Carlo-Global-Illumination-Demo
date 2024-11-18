@@ -1,9 +1,5 @@
-import moderngl
-import glfw
-import numpy as np
-
-def main():
-    print("Hello vadim, vadim blyat")
+from src.Application import Application
 
 if __name__ == "__main__":
-    main()
+    app = Application()
+    app.run() 
