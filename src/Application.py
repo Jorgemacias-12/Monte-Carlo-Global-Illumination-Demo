@@ -5,6 +5,7 @@ from pygame.locals import DOUBLEBUF, OPENGL
 from pygame.time import Clock
 from OpenGL.GL import *
 from OpenGL.GLU import *
+
 from .Shapes import Shapes
 from .Utils import drawText
 from math import cos, sin, radians
@@ -29,33 +30,32 @@ class Application():
     pbo = None
 
     camera_pos = [0, 0, -5]
-    camera_front = [0, 0, -1]    
+    camera_front = [0, 0, -1]
     camera_up = [0, 1, 0]
     camera_speed = 0.1
     yaw = 0
     pitch = 0
     mouse_sensitivity = 0.2
-    
+
     framebuffer = None
 
     def __init__(self):
         pygame.init()
-        
-        pygame.event.set_grab(True)
-        pygame.mouse.set_visible(False)
 
-        
         # Init all pygame resources
         self.screen = pygame.display.set_mode(
             self.resolution,
             pygame.FULLSCREEN | DOUBLEBUF | OPENGL
         )
 
+        pygame.event.set_grab(True)
+        pygame.mouse.set_visible(False)
+
         self.clock = Clock()
 
         if glGenFramebuffers:
             self.pbo = glGenFramebuffers(1)
-        
+
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, self.pbo)
         glBufferData(GL_PIXEL_UNPACK_BUFFER, self.screen_w *
                      self.screen_h * 3, None, GL_STREAM_DRAW)
@@ -93,9 +93,11 @@ class Application():
     def display(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glRotate(1, 10, 0, 1)
-        glPushMatrix()
-        self.draw_manager.cube()
-        glPopMatrix()
+        # glPushMatrix()
+        # self.draw_manager.cube()
+        # glPopMatrix()
+
+        self.draw_manager.draw_scene()
 
         self.update_camera()
 
@@ -106,7 +108,7 @@ class Application():
     def handle_mouse_motion(self, event):
         self.yaw += event.rel[0] * self.mouse_sensitivity
         self.pitch -= event.rel[1] * self.mouse_sensitivity
-        
+
         self.pitch = max(-89, min(89, self.pitch))
 
         direction = [
@@ -114,10 +116,10 @@ class Application():
             sin(radians(self.pitch)),
             sin(radians(self.yaw)) * cos(radians(self.pitch))
         ]
-        
+
         magnitude = (sum(d ** 2 for d in direction)) ** 0.5
         self.camera_front = [d / magnitude for d in direction]
-        
+
     def run(self):
         while not self.done:
             self.clock.tick(self.framerate) / 1000
@@ -130,10 +132,10 @@ class Application():
                     self.handle_mouse_motion(event)
 
             keys = pygame.key.get_pressed()
-                
+
             if keys[pygame.K_ESCAPE]:
                 self.done = True
-            
+
             if keys[pygame.K_w]:
                 self.camera_pos[0] += self.camera_front[0] * self.camera_speed
                 self.camera_pos[1] += self.camera_front[1] * self.camera_speed
