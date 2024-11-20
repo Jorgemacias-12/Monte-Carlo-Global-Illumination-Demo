@@ -1,5 +1,6 @@
 import pygame
 import numpy
+import os
 
 from pygame.locals import DOUBLEBUF, OPENGL
 from pygame.time import Clock
@@ -7,8 +8,9 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 
 from .Shapes import Shapes
-from .Utils import drawText
+from .Utils import compile_shader, drawText, load_shader_from_file
 from math import cos, sin, radians
+from colorama import init, Fore, Style
 
 
 class Application():
@@ -29,7 +31,7 @@ class Application():
 
     pbo = None
 
-    camera_pos = [0, 0, -5]
+    camera_pos = [0, 0, 0]
     camera_front = [0, 0, -1]
     camera_up = [0, 1, 0]
     camera_speed = 0.1
@@ -39,9 +41,15 @@ class Application():
 
     framebuffer = None
 
+    vertex = None
+    fragment = None
+
+    program = None
+
     def __init__(self):
         pygame.init()
-
+        init()
+        
         # Init all pygame resources
         self.screen = pygame.display.set_mode(
             self.resolution,
@@ -55,6 +63,11 @@ class Application():
 
         if glGenFramebuffers:
             self.pbo = glGenFramebuffers(1)
+
+        self.vertex = load_shader_from_file(
+            os.path.join("assets", "shaders", "vertex.glsl"))
+        self.fragment = load_shader_from_file(
+            os.path.join("assets", "shaders", "fragment.glsl"))
 
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, self.pbo)
         glBufferData(GL_PIXEL_UNPACK_BUFFER, self.screen_w *
@@ -81,6 +94,28 @@ class Application():
         if not glGetString(GL_VERSION):
             print("Error: No OpenGL context.")
             self.done = True
+
+        self.program = self.create_shader_program()
+        
+    def create_shader_program(self):
+        vertex_shader = compile_shader(self.vertex, GL_VERTEX_SHADER)
+        fragment_shader = compile_shader(self.fragment, GL_FRAGMENT_SHADER)
+
+        self.program = glCreateProgram()
+
+        if not self.program:
+            raise RuntimeError(f"{Fore.RED}Failed to create shader program.{Style.RESET_ALL}")
+    
+        glAttachShader(self.program, vertex_shader)
+        glAttachShader(self.program, fragment_shader)
+        glLinkProgram(self.program)
+
+        if not glGetProgramiv(self.program, GL_LINK_STATUS):
+            error = glGetProgramInfoLog(self.program).decode()
+            raise RuntimeError(f"{Fore.RED}Program link error: {
+                               error}{Style.RESET_ALL}")
+        
+        print(f"{Fore.GREEN}Shader program linked successfully!{Style.RESET_ALL}")        
 
     def update_camera(self):
         glLoadIdentity()
