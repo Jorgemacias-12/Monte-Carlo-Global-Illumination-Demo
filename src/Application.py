@@ -1,5 +1,6 @@
 import pygame
 import numpy
+import glm
 import os
 
 from pygame.locals import DOUBLEBUF, OPENGL
@@ -96,7 +97,26 @@ class Application():
             self.done = True
 
         self.program = self.create_shader_program()
+        
+        if self.program:
+            glUseProgram(self.program)
+        
+        self.light_pos_loc = glGetUniformLocation(self.program, "lightPos")
+        self.light_color_loc = glGetUniformLocation(self.program, "lightColor")
+        self.object_color_loc = glGetUniformLocation(self.program, "objectColor")
+        
+        if self.light_pos_loc == -1 or self.light_color_loc == -1 or self.object_color_loc == -1:
+            raise RuntimeError(f"{Fore.RED}One or more uniform variables were not found in the shader program.{Style.RESET_ALL}")
 
+        light_position = glm.vec3(0.0, 2.5, -4)
+        light_color = glm.vec3(1.0, 1.0, 1.0)
+        object_color = glm.vec3(0.8, 0.8, 0.8)
+        
+        glUniform3fv(self.light_pos_loc, 1, glm.value_ptr(light_position))
+        glUniform3fv(self.light_color_loc, 1, glm.value_ptr(light_color))
+        glUniform3fv(self.object_color_loc, 1, glm.value_ptr(object_color))
+        
+        
     def create_shader_program(self):
         vertex_shader = compile_shader(self.vertex, GL_VERTEX_SHADER)
         fragment_shader = compile_shader(self.fragment, GL_FRAGMENT_SHADER)
@@ -133,11 +153,9 @@ class Application():
     def display(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glRotate(1, 10, 0, 1)
-        # glPushMatrix()
-        # self.draw_manager.cube()
-        # glPopMatrix()
 
         self.draw_manager.draw_scene()
+        glUseProgram(0)
 
         self.update_camera()
 

@@ -3,6 +3,7 @@ import math
 
 class Shapes:
     def cube(self):
+        glPushMatrix()
         vertices = [(0.5, -0.5, 0.5), (-0.5, -0.5, 0.5), (0.5, 0.5, 0.5), (-0.5, 0.5, 0.5), (0.5, 0.5, -0.5), (-0.5, 0.5, -0.5), (0.5, -0.5, -0.5), (-0.5, -0.5, -0.5), (0.5, 0.5, 0.5), (-0.5, 0.5, 0.5), (0.5, 0.5, -0.5), (-0.5, 0.5, -0.5),
                     (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (-0.5, -0.5, 0.5), (-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, -0.5), (0.5, -0.5, -0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5), (0.5, -0.5, 0.5)]
         triangles = [0, 2, 3, 0, 3, 1, 8, 4, 5, 8, 5, 9, 10, 6, 7, 10, 7, 11, 12,
@@ -15,6 +16,8 @@ class Shapes:
             glVertex3fv(vertices[triangles[t + 2]])
             glEnd()
             t += 3
+            
+        glPopMatrix()
 
     def draw_scene(self):
         glPushMatrix()
@@ -43,37 +46,37 @@ class Shapes:
         glTranslatef(2.0, 0.0, 0.0) 
         glBegin(GL_QUADS)
 
-        glColor3f(1.0, 0.0, 1.0)
+        glColor3f(0, 34.0, 100.0)
         glVertex3f(-1, -1,  1)
         glVertex3f( 1, -1,  1)
         glVertex3f( 1,  1,  1)
         glVertex3f(-1,  1,  1)
 
-        glColor3f(1.0, 0.0, 1.0)
+        glColor3f(0, 34.0, 100.0)
         glVertex3f(-1, -1, -1)
         glVertex3f(-1,  1, -1)
         glVertex3f( 1,  1, -1)
         glVertex3f( 1, -1, -1)
         
-        glColor3f(1.0, 0.0, 1.0)
+        glColor3f(0, 34.0, 100.0)
         glVertex3f(-1,  1, -1)
         glVertex3f(-1,  1,  1)
         glVertex3f( 1,  1,  1)
         glVertex3f( 1,  1, -1)
         
-        glColor3f(1.0, 0.0, 1.0)
+        glColor3f(0, 34.0, 100.0)
         glVertex3f(-1, -1, -1)
         glVertex3f( 1, -1, -1)
         glVertex3f( 1, -1,  1)
         glVertex3f(-1, -1,  1)
         
-        glColor3f(1.0, 0.0, 1.0)
+        glColor3f(0, 34.0, 100.0)
         glVertex3f( 1, -1, -1)
         glVertex3f( 1,  1, -1)
         glVertex3f( 1,  1,  1)
         glVertex3f( 1, -1,  1)
         
-        glColor3f(1.0, 0.0, 1.0)
+        glColor3f(0, 34.0, 100.0)
         glVertex3f(-1, -1, -1)
         glVertex3f(-1, -1,  1)
         glVertex3f(-1,  1,  1)
