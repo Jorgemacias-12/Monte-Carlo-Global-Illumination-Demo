@@ -49,7 +49,7 @@ class Application():
     def __init__(self):
         pygame.init()
         init()
-        
+
         # Init all pygame resources
         self.screen = pygame.display.set_mode(
             self.resolution,
@@ -96,7 +96,7 @@ class Application():
             self.done = True
 
         self.program = self.create_shader_program()
-        
+
     def create_shader_program(self):
         vertex_shader = compile_shader(self.vertex, GL_VERTEX_SHADER)
         fragment_shader = compile_shader(self.fragment, GL_FRAGMENT_SHADER)
@@ -104,19 +104,22 @@ class Application():
         program = glCreateProgram()
 
         if not program:
-            raise RuntimeError(f"{Fore.RED}Failed to create shader program.{Style.RESET_ALL}")
-    
+            raise RuntimeError(f"{Fore.RED}Failed to create shader program.{
+                               Style.RESET_ALL}")
+
         glAttachShader(program, vertex_shader)
         glAttachShader(program, fragment_shader)
         glLinkProgram(program)
 
-        if not glGetProgramiv(program, GL_LINK_STATUS):
+        sucess = glGetProgramiv(program, GL_LINK_STATUS)
+
+        if not sucess:
             error = glGetProgramInfoLog(program).decode()
             raise RuntimeError(f"{Fore.RED}Program link error: {
                                error}{Style.RESET_ALL}")
-        
-        print(f"{Fore.GREEN}Shader program linked successfully!{Style.RESET_ALL}")        
-        
+
+        print(f"{Fore.GREEN}Shader program linked successfully!{Style.RESET_ALL}")
+
         return program
 
     def update_camera(self):
