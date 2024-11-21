@@ -19,10 +19,13 @@ def load_shader_from_file(path):
     
 def compile_shader(source, shader_type):
     shader = glCreateShader(shader_type)
+    
     glShaderSource(shader, source)
     glCompileShader(shader)
     
-    if not glGetShaderiv(shader, GL_COMPILE_STATUS):
+    sucess = glGetShaderiv(shader, GL_COMPILE_STATUS)
+    
+    if not sucess:
         error = glGetShaderInfoLog(shader).decode()
         raise RuntimeError(f"{Fore.RED}Shader compile error: {error}{Style.RESET_ALL}")
     
