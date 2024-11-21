@@ -101,21 +101,23 @@ class Application():
         vertex_shader = compile_shader(self.vertex, GL_VERTEX_SHADER)
         fragment_shader = compile_shader(self.fragment, GL_FRAGMENT_SHADER)
 
-        self.program = glCreateProgram()
+        program = glCreateProgram()
 
-        if not self.program:
+        if not program:
             raise RuntimeError(f"{Fore.RED}Failed to create shader program.{Style.RESET_ALL}")
     
-        glAttachShader(self.program, vertex_shader)
-        glAttachShader(self.program, fragment_shader)
-        glLinkProgram(self.program)
+        glAttachShader(program, vertex_shader)
+        glAttachShader(program, fragment_shader)
+        glLinkProgram(program)
 
-        if not glGetProgramiv(self.program, GL_LINK_STATUS):
-            error = glGetProgramInfoLog(self.program).decode()
+        if not glGetProgramiv(program, GL_LINK_STATUS):
+            error = glGetProgramInfoLog(program).decode()
             raise RuntimeError(f"{Fore.RED}Program link error: {
                                error}{Style.RESET_ALL}")
         
         print(f"{Fore.GREEN}Shader program linked successfully!{Style.RESET_ALL}")        
+        
+        return program
 
     def update_camera(self):
         glLoadIdentity()
