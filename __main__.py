@@ -1,11 +1,16 @@
 from src.Application import Application
 from colorama import init, Fore, Style
+import sys
+from src.Utils import get_max_resolution, select_resolution
 
 if __name__ == "__main__":
     init()
-    
-    width = int(input(f"{Fore.CYAN}Desired width of the window: {Style.RESET_ALL}"))
-    height = int(input(f"{Fore.CYAN}Desired height of the window: {Style.RESET_ALL}"))
-    
+
+    if "--config-res" in sys.argv:
+        width, height = select_resolution()
+    else:
+        width, height = get_max_resolution()
+        
     app = Application(width, height)
-    app.run() 
+    app.run()
+    

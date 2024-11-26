@@ -19,22 +19,6 @@ def load_shader_from_file(path):
         return file.read()
 
 
-def compile_shader(source, shader_type):
-    shader = glCreateShader(shader_type)
-
-    glShaderSource(shader, source)
-    glCompileShader(shader)
-
-    sucess = glGetShaderiv(shader, GL_COMPILE_STATUS)
-
-    if not sucess:
-        error = glGetShaderInfoLog(shader).decode()
-        raise RuntimeError(f"{Fore.RED}Shader compile error: {
-                           error}{Style.RESET_ALL}")
-
-    return shader
-
-
 def check_shader_compile_status(shader, name):
     status = glGetShaderiv(shader, GL_COMPILE_STATUS)
 
@@ -49,3 +33,37 @@ def check_program_link_status(program):
     if not status:
         log = glGetProgramInfoLog(program).decode()
         raise RuntimeError(f"Program linking error: {log}")
+
+
+def select_resolution():
+    pygame.init()
+
+    resolutions = pygame.display.list_modes()
+
+    print(f"{Fore.CYAN}Select a resolution:{Style.RESET_ALL}")
+    for idx, resolution in enumerate(resolutions, 1):
+        print(f"{Fore.GREEN}{idx}. {resolution[0]}x{
+              resolution[1]}{Style.RESET_ALL}")
+
+    try:
+        selection = int(input(
+            f"{Fore.CYAN}Give the number of the desired resolution: {Style.RESET_ALL}"))
+        if 1 <= selection <= len(resolutions):
+            selected_resolution = resolutions[selection - 1]
+            return selected_resolution[0], selected_resolution[1]
+        else:
+            print(f"{Fore.RED}Invalid selection. a default value would be used instead.{
+                  Style.RESET_ALL}")
+            return 800, 600  # Valor por defecto
+    except ValueError:
+        print(f"{Fore.RED}Please, give a valid number. a default value would be used.{
+              Style.RESET_ALL}")
+        return 800, 600
+
+
+def get_max_resolution():
+    pygame.init()
+    resolutions = pygame.display.list_modes()
+
+    max_resolution = max(resolutions, key=lambda res: res[0] * res[1])
+    return max_resolution[0], max_resolution[1]
