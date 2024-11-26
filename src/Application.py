@@ -3,7 +3,7 @@ import pygame
 import glm
 from OpenGL.GL import *
 
-from src.Utils import check_program_link_status, check_shader_compile_status, load_shader_from_file
+from src.Utils import check_program_link_status, check_shader_compile_status, disableOrtho, drawText, enableOrtho, load_shader_from_file
 
 
 class Application:
@@ -18,6 +18,8 @@ class Application:
             (self.width, self.height),
             pygame.FULLSCREEN | pygame.DOUBLEBUF | pygame.OPENGL
         )
+        pygame.event.set_grab(True)
+        pygame.mouse.set_visible(False)
         pygame.display.set_caption(
             F"JAMZ - Monte Carlo Global Illumination Demo")
         glEnable(GL_DEPTH_TEST)
@@ -49,6 +51,16 @@ class Application:
         self.light_pos = glm.vec3(1.2, 1.0, 2.0)
         self.light_color = glm.vec3(1.0, 1.0, 1.0)
         self.object_color = glm.vec3(1.0, 0.5, 0.31)
+        
+        # Camera settings
+        self.camera_pos = glm.vec3(0.0, 0.0, 3.0)
+        self.camera_front = glm.vec3(0.0, 0.0, -1.0)
+        self.camera_up = glm.vec3(0.0, 1.0, 0.0)
+        self.camera_speed = 0.05
+        self.mouse_sensitivity = 0.1
+
+        self.yaw = -90.0
+        self.pitch = 0.0
 
         self.setup_object()
 
@@ -134,17 +146,53 @@ class Application:
         glDrawArrays(GL_TRIANGLES, 0, 36)
         glBindVertexArray(0)
 
+        # TODO: refactor this in order to get it work!
+        # enableOrtho(self.width, self.height)
+        # drawText((10, 10), "Hello, OpenGL!")
+        # disableOrtho()
+
+    def update_camera(self):
+        front = glm.vec3(
+            glm.cos(glm.radians(self.yaw)) * glm.cos(glm.radians(self.pitch)),
+            glm.sin(glm.radians(self.pitch)),
+            glm.sin(glm.radians(self.yaw)) * glm.cos(glm.radians(self.pitch))
+        )
+        self.camera_front = glm.normalize(front)
+
+        self.view_matrix = glm.lookAt(
+            self.camera_pos, self.camera_pos + self.camera_front, self.camera_up)
+
+    def handle_mouse_motion(self, event):
+        self.yaw += event.rel[0] * self.mouse_sensitivity
+        self.pitch -= event.rel[1] * self.mouse_sensitivity
+        self.pitch = glm.clamp(self.pitch, -89.0, 89.0)
+        self.update_camera()
+
+    def handle_keyboard_input(self, keys):
+        if keys[pygame.K_ESCAPE]:
+            self.running = False
+        
+        if keys[pygame.K_w]:
+            self.camera_pos += self.camera_front * self.camera_speed
+        if keys[pygame.K_s]:
+            self.camera_pos -= self.camera_front * self.camera_speed
+        if keys[pygame.K_a]:
+            right = glm.cross(self.camera_front, self.camera_up)
+            self.camera_pos -= glm.normalize(right) * self.camera_speed
+        if keys[pygame.K_d]:
+            right = glm.cross(self.camera_front, self.camera_up)
+            self.camera_pos += glm.normalize(right) * self.camera_speed
+
     def run(self):
         while self.running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
 
-                keys = pygame.key.get_pressed()
+                if event.type == pygame.MOUSEMOTION:
+                    self.handle_mouse_motion(event)
 
-                if keys[pygame.K_ESCAPE]:
-                    self.running = False
-
+            self.handle_keyboard_input(pygame.key.get_pressed())
             self.render()
             pygame.display.flip()
 
