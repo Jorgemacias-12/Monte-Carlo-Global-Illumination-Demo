@@ -18,6 +18,8 @@ class Application:
             (self.width, self.height),
             pygame.FULLSCREEN | pygame.DOUBLEBUF | pygame.OPENGL
         )
+        pygame.display.set_caption(
+            F"JAMZ - Monte Carlo Global Illumination Demo")
         glEnable(GL_DEPTH_TEST)
 
         # Shader compilation
@@ -49,7 +51,6 @@ class Application:
         self.object_color = glm.vec3(1.0, 0.5, 0.31)
 
         self.setup_object()
-        
 
     def create_shader_program(self):
         vertex = load_shader_from_file(
@@ -125,7 +126,8 @@ class Application:
         # Send the light and the color
         glUniform3fv(self.light_pos_loc, 1, glm.value_ptr(self.light_pos))
         glUniform3fv(self.light_color_loc, 1, glm.value_ptr(self.light_color))
-        glUniform3fv(self.object_color_loc, 1, glm.value_ptr(self.object_color))
+        glUniform3fv(self.object_color_loc, 1,
+                     glm.value_ptr(self.object_color))
 
         # Draw object
         glBindVertexArray(self.vao)
@@ -136,6 +138,11 @@ class Application:
         while self.running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    self.running = False
+
+                keys = pygame.key.get_pressed()
+
+                if keys[pygame.K_ESCAPE]:
                     self.running = False
 
             self.render()
