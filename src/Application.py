@@ -1,217 +1,144 @@
-import pygame
-import numpy
-import glm
 import os
-
-from pygame.locals import DOUBLEBUF, OPENGL
-from pygame.time import Clock
+import pygame
+import glm
 from OpenGL.GL import *
-from OpenGL.GLU import *
 
-from .Shapes import Shapes
-from .Utils import compile_shader, drawText, load_shader_from_file
-from math import cos, sin, radians
-from colorama import init, Fore, Style
+from src.Utils import check_program_link_status, check_shader_compile_status, load_shader_from_file
 
 
-class Application():
-    screen_w = 1920
-    screen_h = 1080
+class Application:
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.running = True
 
-    resolution = (screen_w, screen_h)
-
-    bg = (0, 0, 0, 1)
-    drawing_color = (1, 1, 1, 1)
-
-    screen = None
-    clock = None
-
-    done = False
-    framerate = 60
-    draw_manager = Shapes()
-
-    pbo = None
-
-    camera_pos = [0, 0, 0]
-    camera_front = [0, 0, -1]
-    camera_up = [0, 1, 0]
-    camera_speed = 0.1
-    yaw = 0
-    pitch = 0
-    mouse_sensitivity = 0.2
-
-    framebuffer = None
-
-    vertex = None
-    fragment = None
-
-    program = None
-
-    def __init__(self):
+        # Init pygame and OpenGl
         pygame.init()
-        init()
-
-        # Init all pygame resources
-        self.screen = pygame.display.set_mode(
-            self.resolution,
-            pygame.FULLSCREEN | DOUBLEBUF | OPENGL
+        pygame.display.set_mode(
+            (self.width, self.height),
+            pygame.FULLSCREEN | pygame.DOUBLEBUF | pygame.OPENGL
         )
+        glEnable(GL_DEPTH_TEST)
 
-        pygame.event.set_grab(True)
-        pygame.mouse.set_visible(False)
-
-        self.clock = Clock()
-
-        if glGenFramebuffers:
-            self.pbo = glGenFramebuffers(1)
-
-        self.vertex = load_shader_from_file(
-            os.path.join("assets", "shaders", "vertex.glsl"))
-        self.fragment = load_shader_from_file(
-            os.path.join("assets", "shaders", "fragment.glsl"))
-
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, self.pbo)
-        glBufferData(GL_PIXEL_UNPACK_BUFFER, self.screen_w *
-                     self.screen_h * 3, None, GL_STREAM_DRAW)
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
-
-        glDisable(GL_LIGHTING)
-        glDisable(GL_TEXTURE_2D)
-        glDisable(GL_COLOR_MATERIAL)
-
-        glViewport(0, 0, self.screen_w, self.screen_h)
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-        gluPerspective(45, self.screen_w / self.screen_h, 0.1, 100.0)
-        glMatrixMode(GL_MODELVIEW)
-        glLoadIdentity()
-
-        glEnable(GL_BLEND)
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-
-        pygame.display.set_caption(
-            "JAMZ - Monte Carlo Global Illumination - Demo")
-
-        if not glGetString(GL_VERSION):
-            print("Error: No OpenGL context.")
-            self.done = True
-
+        # Shader compilation
         self.program = self.create_shader_program()
-        
-        if self.program:
-            glUseProgram(self.program)
-        
+        glUseProgram(self.program)
+
+        # Get unfiform locations
+        self.model_loc = glGetUniformLocation(self.program, "model")
+        self.view_loc = glGetUniformLocation(self.program, "view")
+        self.projection_loc = glGetUniformLocation(self.program, "projection")
         self.light_pos_loc = glGetUniformLocation(self.program, "lightPos")
         self.light_color_loc = glGetUniformLocation(self.program, "lightColor")
-        self.object_color_loc = glGetUniformLocation(self.program, "objectColor")
-        
-        if self.light_pos_loc == -1 or self.light_color_loc == -1 or self.object_color_loc == -1:
-            raise RuntimeError(f"{Fore.RED}One or more uniform variables were not found in the shader program.{Style.RESET_ALL}")
+        self.object_color_loc = glGetUniformLocation(
+            self.program, "objectColor")
 
-        light_position = glm.vec3(0.0, 2.5, -4)
-        light_color = glm.vec3(1.0, 1.0, 1.0)
-        object_color = glm.vec3(0.8, 0.8, 0.8)
+        # Matrix configuration
+        self.model_matrix = glm.mat4(1.0)
+        self.view_matrix = glm.lookAt(
+            glm.vec3(0.0, 0.0, 3.0), glm.vec3(
+                0.0, 0.0, 0.0), glm.vec3(0.0, 1.0, 0.0)
+        )
+        self.projection_matrix = glm.perspective(
+            glm.radians(45.0), width / height, 0.1, 100.0
+        )
+
+        # Light configuration
+        self.light_pos = glm.vec3(1.2, 1.0, 2.0)
+        self.light_color = glm.vec3(1.0, 1.0, 1.0)
+        self.object_color = glm.vec3(1.0, 0.5, 0.31)
+
+        self.setup_object()
         
-        glUniform3fv(self.light_pos_loc, 1, glm.value_ptr(light_position))
-        glUniform3fv(self.light_color_loc, 1, glm.value_ptr(light_color))
-        glUniform3fv(self.object_color_loc, 1, glm.value_ptr(object_color))
-        
-        
+
     def create_shader_program(self):
-        vertex_shader = compile_shader(self.vertex, GL_VERTEX_SHADER)
-        fragment_shader = compile_shader(self.fragment, GL_FRAGMENT_SHADER)
+        vertex = load_shader_from_file(
+            os.path.join("assets", "shaders", "vertex.glsl"))
+        fragment = load_shader_from_file(
+            os.path.join("assets", "shaders", "fragment.glsl"))
+
+        vs = glCreateShader(GL_VERTEX_SHADER)
+        glShaderSource(vs, vertex)
+        glCompileShader(vs)
+        check_shader_compile_status(vs, "Vertex Shader")
+
+        fs = glCreateShader(GL_FRAGMENT_SHADER)
+        glShaderSource(fs, fragment)
+        glCompileShader(fs)
+        check_shader_compile_status(fs, "Fragment Shader")
 
         program = glCreateProgram()
-
-        if not program:
-            raise RuntimeError(f"{Fore.RED}Failed to create shader program.{
-                               Style.RESET_ALL}")
-
-        glAttachShader(program, vertex_shader)
-        glAttachShader(program, fragment_shader)
+        glAttachShader(program, vs)
+        glAttachShader(program, fs)
         glLinkProgram(program)
+        check_program_link_status(program)
 
-        sucess = glGetProgramiv(program, GL_LINK_STATUS)
-
-        if not sucess:
-            error = glGetProgramInfoLog(program).decode()
-            raise RuntimeError(f"{Fore.RED}Program link error: {
-                               error}{Style.RESET_ALL}")
-
-        print(f"{Fore.GREEN}Shader program linked successfully!{Style.RESET_ALL}")
+        glDeleteShader(vs)
+        glDeleteShader(fs)
 
         return program
 
-    def update_camera(self):
-        glLoadIdentity()
-        gluLookAt(self.camera_pos[0], self.camera_pos[1], self.camera_pos[2],
-                  self.camera_pos[0] + self.camera_front[0],
-                  self.camera_pos[1] + self.camera_front[1],
-                  self.camera_pos[2] + self.camera_front[2],
-                  self.camera_up[0], self.camera_up[1], self.camera_up[2])
-
-    def display(self):
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        glRotate(1, 10, 0, 1)
-
-        self.draw_manager.draw_scene()
-        glUseProgram(0)
-
-        self.update_camera()
-
-        drawText((10, 50, 0), f"Debug Info")
-        drawText((10, 25, 0), f"Current position: {self.camera_pos}")
-        drawText((10, 10, 0), f"FPS: {self.clock.get_fps():.0f}")
-
-    def handle_mouse_motion(self, event):
-        self.yaw += event.rel[0] * self.mouse_sensitivity
-        self.pitch -= event.rel[1] * self.mouse_sensitivity
-
-        self.pitch = max(-89, min(89, self.pitch))
-
-        direction = [
-            cos(radians(self.yaw)) * cos(radians(self.pitch)),
-            sin(radians(self.pitch)),
-            sin(radians(self.yaw)) * cos(radians(self.pitch))
+    def setup_object(self):
+        vertices = [
+            -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
+            0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
+            0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
         ]
 
-        magnitude = (sum(d ** 2 for d in direction)) ** 0.5
-        self.camera_front = [d / magnitude for d in direction]
+        self.vao = glGenVertexArrays(1)
+        vbo = glGenBuffers(1)
+
+        glBindVertexArray(self.vao)
+        glBindBuffer(GL_ARRAY_BUFFER, vbo)
+        glBufferData(GL_ARRAY_BUFFER, (GLfloat * len(vertices))
+                     (*vertices), GL_STATIC_DRAW)
+
+        # Position attributes
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+                              6 * 4, ctypes.c_void_p(0))
+        glEnableVertexAttribArray(0)
+
+        # Attributes of the normals
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
+                              6 * 4, ctypes.c_void_p(12))
+        glEnableVertexAttribArray(1)
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0)
+        glBindVertexArray(0)
+
+    def render(self):
+        glClearColor(0.1, 0.1, 0.1, 1.0)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+        glUseProgram(self.program)
+
+        # Send the matrix
+        glUniformMatrix4fv(self.model_loc, 1, GL_FALSE,
+                           glm.value_ptr(self.model_matrix))
+        glUniformMatrix4fv(self.view_loc, 1, GL_FALSE,
+                           glm.value_ptr(self.view_matrix))
+        glUniformMatrix4fv(
+            self.projection_loc, 1, GL_FALSE, glm.value_ptr(
+                self.projection_matrix)
+        )
+
+        # Send the light and the color
+        glUniform3fv(self.light_pos_loc, 1, glm.value_ptr(self.light_pos))
+        glUniform3fv(self.light_color_loc, 1, glm.value_ptr(self.light_color))
+        glUniform3fv(self.object_color_loc, 1, glm.value_ptr(self.object_color))
+
+        # Draw object
+        glBindVertexArray(self.vao)
+        glDrawArrays(GL_TRIANGLES, 0, 36)
+        glBindVertexArray(0)
 
     def run(self):
-        while not self.done:
-            self.clock.tick(self.framerate) / 1000
-
+        while self.running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    self.done = True
+                    self.running = False
 
-                if event.type == pygame.MOUSEMOTION:
-                    self.handle_mouse_motion(event)
-
-            keys = pygame.key.get_pressed()
-
-            if keys[pygame.K_ESCAPE]:
-                self.done = True
-
-            if keys[pygame.K_w]:
-                self.camera_pos[0] += self.camera_front[0] * self.camera_speed
-                self.camera_pos[1] += self.camera_front[1] * self.camera_speed
-                self.camera_pos[2] += self.camera_front[2] * self.camera_speed
-            if keys[pygame.K_s]:
-                self.camera_pos[0] -= self.camera_front[0] * self.camera_speed
-                self.camera_pos[1] -= self.camera_front[1] * self.camera_speed
-                self.camera_pos[2] -= self.camera_front[2] * self.camera_speed
-            if keys[pygame.K_a]:
-                right = numpy.cross(self.camera_front, self.camera_up)
-                self.camera_pos[0] -= right[0] * self.camera_speed
-                self.camera_pos[2] -= right[2] * self.camera_speed
-            if keys[pygame.K_d]:
-                right = numpy.cross(self.camera_front, self.camera_up)
-                self.camera_pos[0] += right[0] * self.camera_speed
-                self.camera_pos[2] += right[2] * self.camera_speed
-
-            self.display()
+            self.render()
             pygame.display.flip()
 
         pygame.quit()
