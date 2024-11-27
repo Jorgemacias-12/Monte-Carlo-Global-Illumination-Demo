@@ -1,5 +1,7 @@
+from math import cos, radians, sin
 import os
 import pygame
+import numpy
 import glm
 from OpenGL.GL import *
 
@@ -51,12 +53,12 @@ class Application:
         self.light_pos = glm.vec3(1.2, 1.0, 2.0)
         self.light_color = glm.vec3(1.0, 1.0, 1.0)
         self.object_color = glm.vec3(1.0, 0.5, 0.31)
-        
+
         # Camera settings
         self.camera_pos = glm.vec3(0.0, 0.0, 3.0)
         self.camera_front = glm.vec3(0.0, 0.0, -1.0)
         self.camera_up = glm.vec3(0.0, 1.0, 0.0)
-        self.camera_speed = 0.05
+        self.camera_speed = 0.001
         self.mouse_sensitivity = 0.1
 
         self.yaw = -90.0
@@ -183,6 +185,8 @@ class Application:
             right = glm.cross(self.camera_front, self.camera_up)
             self.camera_pos += glm.normalize(right) * self.camera_speed
 
+        self.update_camera()
+        
     def run(self):
         while self.running:
             for event in pygame.event.get():
