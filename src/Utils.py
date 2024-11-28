@@ -99,8 +99,7 @@ def select_resolution():
 
     print(f"{Fore.CYAN}Select a resolution:{Style.RESET_ALL}")
     for idx, resolution in enumerate(resolutions, 1):
-        print(f"{Fore.GREEN}{idx}. {resolution[0]}x{
-              resolution[1]}{Style.RESET_ALL}")
+        print(f"{Fore.GREEN}{idx}. {resolution[0]}x{resolution[1]}{Style.RESET_ALL}")
 
     try:
         selection = int(input(
@@ -109,12 +108,10 @@ def select_resolution():
             selected_resolution = resolutions[selection - 1]
             return selected_resolution[0], selected_resolution[1]
         else:
-            print(f"{Fore.RED}Invalid selection. a default value would be used instead.{
-                  Style.RESET_ALL}")
+            print(f"{Fore.RED}Invalid selection. a default value would be used instead.{Style.RESET_ALL}")
             return 800, 600  # Valor por defecto
     except ValueError:
-        print(f"{Fore.RED}Please, give a valid number. a default value would be used.{
-              Style.RESET_ALL}")
+        print(f"{Fore.RED}Please, give a valid number. a default value would be used.{Style.RESET_ALL}")
         return 800, 600
 
 
