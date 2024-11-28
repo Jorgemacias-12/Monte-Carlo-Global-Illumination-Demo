@@ -1,3 +1,4 @@
+import math
 import pygame
 
 from OpenGL.GL import *
@@ -6,12 +7,65 @@ from colorama import Fore, Style
 
 
 def drawText(position, text):
+    glEnable(GL_BLEND)
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
     font = pygame.font.Font(None, 20)
-    textSurface = font.render(text, True, (255, 255, 66, 255)).convert_alpha()
+    textSurface = font.render(text, True, (255, 255, 66))
+
+    texture = glGenTextures(1)
+
+    glBindTexture(GL_TEXTURE_2D, texture)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+
     textData = pygame.image.tostring(textSurface, "RGBA", True)
-    glWindowPos3d(*position)
-    glDrawPixels(textSurface.get_width(), textSurface.get_height(),
-                 GL_RGBA, GL_UNSIGNED_BYTE, textData)
+    width, height = textSurface.get_size()
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height,
+                 0, GL_RGBA, GL_UNSIGNED_BYTE, textData)
+
+    enableOrtho(width, height)
+
+    glPushMatrix()
+    glTranslatef(position[0], position[1], 0.0)
+
+    glBegin(GL_QUADS)
+    glTexCoord2f(0, 0)
+    glVertex2f(0, 0)
+    glTexCoord2f(1, 0)
+    glVertex2f(width, 0)
+    glTexCoord2f(1, 1)
+    glVertex2f(width, height)
+    glTexCoord2f(0, 1)
+    glVertex2f(0, height)
+    glEnd()
+
+    glPopMatrix()
+
+    disableOrtho()
+
+    glDeleteTextures(1, [texture])
+    glDisable(GL_BLEND)
+
+
+def enableOrtho(width, height):
+    glMatrixMode(GL_PROJECTION)
+    glPushMatrix()
+    glLoadIdentity()
+    glOrtho(0, width, height, 0, -1, 1)
+    glMatrixMode(GL_MODELVIEW)
+    glPushMatrix()
+    glLoadIdentity()
+    glDisable(GL_DEPTH_TEST)
+
+
+def disableOrtho():
+    glEnable(GL_DEPTH_TEST)
+    glMatrixMode(GL_PROJECTION)
+    glPopMatrix()
+    glMatrixMode(GL_MODELVIEW)
+    glPopMatrix()
 
 
 def load_shader_from_file(path):
@@ -22,10 +76,12 @@ def load_shader_from_file(path):
 def check_shader_compile_status(shader, name):
     status = glGetShaderiv(shader, GL_COMPILE_STATUS)
 
-    if not status:
+    if status != GL_TRUE:
         log = glGetShaderInfoLog(shader).decode()
+        raise RuntimeError(f"{Fore.RED}{name} compilation error: {log}{Style.RESET_ALL}")
+    else:
+        print(f"{Fore.GREEN}GLSL Program compiled successfully!{Style.RESET_ALL}")
 
-        raise RuntimeError(f"{name} compilation error: {log}")
 
 
 def check_program_link_status(program):
@@ -67,3 +123,24 @@ def get_max_resolution():
 
     max_resolution = max(resolutions, key=lambda res: res[0] * res[1])
     return max_resolution[0], max_resolution[1]
+
+
+def generate_sphere(radius, sectors, stacks):
+    vertices = []
+
+    for stack in range(stacks + 1):
+        stack_angle = math.radians(90 - stack * 180 / stacks)
+        xy = radius * math.cos(stack_angle)
+        z = radius * math.sin(stack_angle)
+
+        for sector in range(sectors + 1):
+            sector_angle = math.radians(sector * 360 / sectors)
+            x = xy * math.cos(sector_angle)
+            y = xy * math.sin(sector_angle)
+            
+            length = math.sqrt(x * x + y * y + z * z)
+            nx, ny, nz = x / length, y / length, z / length
+            
+            vertices.extend([x, y, z, nx, ny, nz])
+    
+    return vertices
