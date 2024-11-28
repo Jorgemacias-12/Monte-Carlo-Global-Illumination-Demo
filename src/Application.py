@@ -66,7 +66,7 @@ class Application:
         self.yaw = -90.0
         self.pitch = 0.0
 
-        self.setup_object()
+        self.setup_scene()
 
     def create_shader_program(self):
         vertex = load_shader_from_file(
@@ -95,7 +95,7 @@ class Application:
 
         return program
 
-    def setup_object(self):
+    def setup_scene(self):
         cube_vertices = [
             # Position          # Normal
             -0.5, -0.5, -0.5,  0.0,  0.0, -1.0, # Face 1
