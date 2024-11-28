@@ -1,3 +1,4 @@
+import os
 import math
 import pygame
 
@@ -144,3 +145,26 @@ def generate_sphere(radius, sectors, stacks):
             vertices.extend([x, y, z, nx, ny, nz])
     
     return vertices
+
+def drawText(position, text, program):
+    glUseProgram(0)
+    
+    font_path = os.path.join("assets", "fonts", "Monocraft.ttf")
+
+    font = pygame.font.Font(font_path, 20)
+    
+    textSurface = font.render(text, True, (255, 255, 66, 255)).convert_alpha()
+    textData = pygame.image.tostring(textSurface, "RGBA", True)
+    
+    glWindowPos3d(*position)
+    
+    glEnable(GL_BLEND)
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+    glDrawPixels(textSurface.get_width(), textSurface.get_height(),
+                 GL_RGBA, GL_UNSIGNED_BYTE, textData)
+    
+    glDisable(GL_BLEND)
+    
+    glUseProgram(program)
+    
