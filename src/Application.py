@@ -5,7 +5,7 @@ import numpy
 import glm
 from OpenGL.GL import *
 
-from src.Utils import check_program_link_status, check_shader_compile_status, disableOrtho, drawText, enableOrtho, generate_sphere, load_shader_from_file
+from src.Utils import check_program_link_status, check_shader_compile_status,  drawText, generate_sphere, load_shader_from_file
 
 
 class Application:
@@ -17,7 +17,7 @@ class Application:
 
         # Init pygame and OpenGl
         pygame.init()
-        pygame.display.set_mode(
+        self.surface = pygame.display.set_mode(
             (self.width, self.height),
             pygame.FULLSCREEN | pygame.DOUBLEBUF | pygame.OPENGL
         )
@@ -69,6 +69,7 @@ class Application:
         self.setup_scene()
 
     def create_shader_program(self):
+        # Load 3d glsl 
         vertex = load_shader_from_file(
             os.path.join("assets", "shaders", "vertex.glsl"))
         fragment = load_shader_from_file(
@@ -243,10 +244,11 @@ class Application:
         glBindVertexArray(0)
         
         # TODO: refactor this in order to get it work!
-        # enableOrtho(self.width, self.height)
-        # drawText((10, 10), "Hello, OpenGL!")
-        # disableOrtho()
-
+        
+        drawText((10, 75, 0), "Debug Info", self.program)
+        drawText((10, 50, 0), f"Current position: {self.camera_pos}", self.program)
+        drawText((10, 25, 0), f"FPS: {self.clock.get_fps():.0f}", self.program)
+        
     def update_camera(self):
         front = glm.vec3(
             glm.cos(glm.radians(self.yaw)) * glm.cos(glm.radians(self.pitch)),
